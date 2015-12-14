@@ -14,5 +14,6 @@ Licensed under the LGPL-v3 license, see LICENSE file for details.
 
 ## Functionality
 
-Published geometry messages, that are time-stamped, with the Vicon
+Publishes geometry messages, that are time-stamped, with the Vicon
 measurements.
+* Supports a "zero-pose" for calibrating an object.
