@@ -13,6 +13,11 @@ find_package(catkin REQUIRED COMPONENTS
   viconstream
 )
 
+########################################
+# Enable C++14 and other C++ flags
+########################################
+set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
