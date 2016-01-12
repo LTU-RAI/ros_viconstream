@@ -16,22 +16,14 @@ class ROS_ViconStream
 {
 private:
 
-    class ObjectPublisher
-    {
-    public:
-        bool calibrated;
-        tf::Transform zero_pose;
-        ros::Publisher pub;
+    /* @brief ID of the reference frame (Vicon area). */
+    std::string _id_reference_frame;
 
-        ObjectPublisher(ros::NodeHandle &nh,
-                        std::string subjectName,
-                        std::string segmentName)
-            : calibrated(false), zero_pose(tf::Pose::getIdentity())
-        {
-            std::string name = subjectName + "/" + segmentName;
-            pub = nh.advertise<geometry_msgs::TransformStamped> (name, 5);
-        }
-    };
+    /* @brief Object name prefix. */
+    std::string _object_prefix;
+
+    /* @brief Class defining an object publisher. */
+    class ObjectPublisher;
 
     /* @brief Map holding the Vicon objects and their respective publisher. */
     std::map<std::string, ObjectPublisher> _objectList;
@@ -39,11 +31,12 @@ private:
     /* @brief The local ROS node handle. */
     ros::NodeHandle _nh;
 
-    /* @brief The TF broadcaste. */
+    /* @brief The TF broadcaster. */
     tf::TransformBroadcaster _tf_broadcaster;
 
+    /* @brief ViconStream object. */
     ViconStream::ViconStream *_vs;
-    int _cb_id;
+
     void viconCallback(const Client &frame);
 
 public:

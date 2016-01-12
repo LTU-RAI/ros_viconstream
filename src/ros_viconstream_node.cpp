@@ -17,6 +17,9 @@ int main(int argc, char *argv[])
     ROS_INFO("Initializing Vicon...");
     ros::init(argc, argv, "ros_viconstream");
 
+    /* Start the ViconStream. */
+    ROS_ViconStream vs(cout);
+
     /* Let ROS run. */
     ros::spin();
 
