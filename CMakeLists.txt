@@ -5,6 +5,7 @@ project(ros_viconstream)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  tf
   geometry_msgs
   message_generation
   message_runtime
@@ -75,6 +76,7 @@ set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
+  tf
   geometry_msgs
   std_msgs
 )
@@ -137,7 +139,10 @@ include_directories(
 # add_dependencies(ros_viconstream ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(ros_viconstream_node src/ros_viconstream_node.cpp)
+add_executable(ros_viconstream_node
+  src/ros_viconstream_node.cpp
+  src/ros_viconstream.cpp
+)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
