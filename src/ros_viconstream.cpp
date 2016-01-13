@@ -19,6 +19,11 @@ public:
         : calibrated(false), zero_pose(tf::Pose::getIdentity())
     {
         std::string name;
+        std::string params;
+
+        double px, py, pz, qw, qx, qy, qz, rr, rp, ry;
+        bool cal = true;
+        bool has_quaternion;
 
         /* Create object name. */
         if (objectPrefix.size() > 0)
@@ -29,7 +34,82 @@ public:
         /* Advertise the message. */
         pub = nh.advertise<geometry_msgs::TransformStamped> (name, 5);
 
-        /* Check for the object calibration. */
+        /*
+         * Check for the object calibration.
+         */
+        params = name + "/zero_pose/";
+
+        /* Position calibration. */
+        cal = cal && nh.getParam(params + "position/x", px);
+        cal = cal && nh.getParam(params + "position/y", py);
+        cal = cal && nh.getParam(params + "position/z", pz);
+
+        if (cal)
+        {
+            ROS_INFO("Position calibration for %s available:"
+                     " x = %f, y = %f, z = %f",
+                     name.c_str(), px, py, pz);
+
+            zero_pose.setOrigin( tf::Vector3(px, py, pz) );
+        }
+        else
+        {
+            ROS_WARN("Position calibration for %s unavailable,"
+                     " setting x = 0, y = 0, z = 0",
+                     name.c_str());
+
+            zero_pose.setOrigin( tf::Vector3(0, 0, 0) );
+        }
+
+        cal = true;
+
+        /* Quaternion calibration. */
+        cal = cal && nh.getParam(params + "rotation/w", qw);
+        cal = cal && nh.getParam(params + "rotation/x", qx);
+        cal = cal && nh.getParam(params + "rotation/y", qy);
+        cal = cal && nh.getParam(params + "rotation/z", qz);
+
+        has_quaternion = cal;
+
+        if (!has_quaternion)
+        {
+            cal = true;
+
+            /* If there was no quaternion, check for roll, pitch and yaw. */
+            cal = cal && nh.getParam(params + "rotation/roll", rr);
+            cal = cal && nh.getParam(params + "rotation/pitch", rp);
+            cal = cal && nh.getParam(params + "rotation/yaw", ry);
+        }
+
+        /* Apply calibrations. */
+        if (cal)
+        {
+            if (has_quaternion)
+            {
+                ROS_INFO("Quaternion calibration for %s available:"
+                         " w = %f, x = %f, y = %f, z = %f",
+                         name.c_str(), qw, qx, qy, qz);
+
+                zero_pose.setRotation( tf::Quaternion(qx, qy, qz, qw) );
+            }
+            else
+            {
+                ROS_INFO("RPY calibration for %s available:"
+                         " R = %f, P = %f, Y = %f",
+                         name.c_str(), rr, rp, ry);
+
+                zero_pose.setRotation( tf::createQuaternionFromRPY(rr, rp, ry) );
+            }
+        }
+        else
+        {
+            ROS_WARN("Rotation calibration for %s unavailable,"
+                     " setting quaternion w = 1, x = 0, y = 0, z = 0",
+                     name.c_str());
+
+            zero_pose.setRotation( tf::Quaternion(0, 0, 0, 1) );
+        }
+
     }
 };
 

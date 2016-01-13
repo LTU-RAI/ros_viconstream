@@ -1,19 +1,33 @@
 <launch>
 
     <node pkg="ros_viconstream" name="vicon" type="ros_viconstream_node" output="screen">
+        <!-- Vicon url -->
         <!-- <param name="vicon_url" value="vicon.research.ltu.se:801" /> -->
         <param name="vicon_url" value="130.240.235.15:801" />
+
+        <!-- Naming prefix of object -->
         <param name="object_prefix" value="myprefix" />
+
+        <!-- Name of the base "world" frame -->
         <param name="id_reference_frame" value="/world" />
 
+        <!-- Object calibration (set zero position and pose) -->
 
+        <!-- Position calibration -->
         <param name="kfly/kfly/zero_pose/position/x" value="0" />
         <param name="kfly/kfly/zero_pose/position/y" value="0" />
         <param name="kfly/kfly/zero_pose/position/z" value="0" />
+
+        <!-- Quaternion calibration -->
         <param name="kfly/kfly/zero_pose/rotation/w" value="1" />
         <param name="kfly/kfly/zero_pose/rotation/x" value="0" />
         <param name="kfly/kfly/zero_pose/rotation/y" value="0" />
         <param name="kfly/kfly/zero_pose/rotation/z" value="0" />
+
+        <!-- RPY calibration, only quaternion OR RPY are allowed, not both. -->
+        <!-- <param name="kfly/kfly/zero_pose/rotation/roll" value="0" /> -->
+        <!-- <param name="kfly/kfly/zero_pose/rotation/pitch" value="0" /> -->
+        <!-- <param name="kfly/kfly/zero_pose/rotation/yaw" value="0" /> -->
     </node>
 
 </launch>
