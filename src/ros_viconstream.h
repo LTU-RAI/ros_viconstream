@@ -37,6 +37,8 @@ private:
     /* @brief ViconStream object. */
     ViconStream::ViconStream *_vs;
 
+    ROS_ViconStream::ObjectPublisher&registerObject(std::string &subjectName,
+                                                    std::string &segmentName);
     void viconCallback(const Client &frame);
 
 public:
