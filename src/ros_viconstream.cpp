@@ -212,6 +212,9 @@ void ROS_ViconStream::viconCallback(const Client &frame)
             obj.pub.publish( pub_tf );
         }
     }
+
+    /* Publish the tf list. */
+    _tf_broadcaster.sendTransform( tf_list );
 }
 
 
