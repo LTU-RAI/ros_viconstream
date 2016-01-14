@@ -35,9 +35,9 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ########################################
-# Enable C++14 and other C++ flags
+# Enable C++11 and other C++ flags
 ########################################
-set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
