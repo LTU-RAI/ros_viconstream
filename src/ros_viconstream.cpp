@@ -28,11 +28,31 @@
 class ROS_ViconStream::ObjectPublisher
 {
 public:
+    /* @brief Status of calibration from parameters. */
     bool calibrated;
+
+    /* @brief Checks if the object is occluded for a longer time. */
+    int occluded_counter;
+
+    /* @brief Holder of the zero pose of the object, used to remove offset from
+     * an object to not have to fight with Vicon Tracker. */
     tf::Transform zero_pose;
+
+    /* @brief Holder of the ROS publisher for this object. */
     ros::Publisher pub;
+
+    /* @brief Name of the object on the form "subject name/segment name". */
     std::string name;
 
+    /**
+     * @brief   Creates a new object publisher object and loads a calibration
+     *          of the zero pose if available.
+     *
+     * @param[in] nh            The node handle from ROS.
+     * @param[in] objectPrefix  An prefix to the naming scheme (if wanted).
+     * @param[in] subjectName   The subject name from the Vicon frame.
+     * @param[in] segmentName   The segment name from the Vicon frame.
+     */
     ObjectPublisher(ros::NodeHandle &nh,
                     std::string &objectPrefix,
                     std::string &subjectName,
@@ -44,6 +64,7 @@ public:
         double px, py, pz, qw, qx, qy, qz, rr, rp, ry;
         bool cal = true;
         bool has_quaternion;
+        occluded_counter = 0;
 
         /* Create object name. */
         if (objectPrefix.size() > 0)
@@ -73,6 +94,8 @@ public:
                      name.c_str(), px, py, pz);
 
             zero_pose.setOrigin( tf::Vector3(px, py, pz) );
+
+            calibrated = true;
         }
         else
         {
@@ -122,6 +145,8 @@ public:
 
                 zero_pose.setRotation( tf::createQuaternionFromRPY(rr, rp, ry) );
             }
+
+            calibrated = calibrated & true;
         }
         else
         {
@@ -206,17 +231,29 @@ void ROS_ViconStream::viconCallback(const Client &frame)
 
             /* Check so the object is not occluded. */
             if (translation.Occluded || rotation.Occluded)
+            {
+                obj.occluded_counter++;
+
+                if (obj.occluded_counter > 100)
+                {
+                    ROS_WARN(
+                        "Object '%s' has not been visible for 100 frames.",
+                        obj.name.c_str()
+                    );
+                }
+
                 continue;
+            }
 
             /* Move the Vicon measurement to a tf transform. */
-            tf.setOrigin( tf::Vector3(translation.Translation[0] / 1000,
-                                      translation.Translation[1] / 1000,
-                                      translation.Translation[2] / 1000) );
+            tf.setOrigin( tf::Vector3(translation.Translation[0] / 1000,    // x
+                                      translation.Translation[1] / 1000,    // y
+                                      translation.Translation[2] / 1000) ); // z
 
-            tf.setRotation( tf::Quaternion(rotation.Rotation[0],
-                                           rotation.Rotation[1],
-                                           rotation.Rotation[2],
-                                           rotation.Rotation[3]) );
+            tf.setRotation( tf::Quaternion(rotation.Rotation[0],    // x
+                                           rotation.Rotation[1],    // y
+                                           rotation.Rotation[2],    // z
+                                           rotation.Rotation[3]) ); // w
 
             /* Apply calibration. */
             tf *= obj.zero_pose;
