@@ -227,7 +227,10 @@ void ROS_ViconStream::viconCallback(const Client &frame)
             /* Check so the operation was successful. */
             if (translation.Result != Result::Success ||
                 rotation.Result != Result::Success)
+            {
+                ROS_WARN("Strange error, should not happen.");
                 continue;
+            }
 
             /* Check so the object is not occluded. */
             if (translation.Occluded || rotation.Occluded)
