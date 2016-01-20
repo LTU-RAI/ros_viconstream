@@ -236,6 +236,8 @@ void ROS_ViconStream::viconCallback(const Client &frame)
 
                 if (obj.occluded_counter > 100)
                 {
+                    obj.occluded_counter = 0;
+
                     ROS_WARN(
                         "Object '%s' has not been visible for 100 frames.",
                         obj.name.c_str()
