@@ -294,7 +294,7 @@ void ROS_ViconStream::viconCallback(const Client &frame)
  ********************************/
 
 ROS_ViconStream::ROS_ViconStream(std::ostream &os)
-    : _nh("~"), _vs(NULL), _dl([&] () { this->deadlineCallback(); }, 100),
+    : _nh("~"), _vs(NULL), _dl([&] () { this->deadlineCallback(); }, 500),
       _dl_id(0)
 {
     /* Get the Vicon URL. */
