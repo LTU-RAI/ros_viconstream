@@ -18,10 +18,14 @@
 *
 ****************************************************************************/
 
+#ifndef _ROS_VICONSTREAM_H
+#define _ROS_VICONSTREAM_H
+
 #include <iostream>
 #include <map>
 #include <vector>
 #include <thread>
+#include <atomic>
 
 #include "ros/ros.h"
 #include "viconstream/viconstream.h"
@@ -29,6 +33,7 @@
 #include "tf/transform_broadcaster.h"
 #include "geometry_msgs/PoseStamped.h"
 
+#include "deadline.h"
 
 class ROS_ViconStream
 {
@@ -55,17 +60,27 @@ private:
     /* @brief ViconStream object. */
     ViconStream::ViconStream *_vs;
 
+    /* @biref Deadline checking Vicon's library for deadlocks. */
+    Deadline::Deadline _dl;
+
+    /* Deadline ID. */
+    std::atomic<unsigned int> _dl_id;
+
     /**
      * @brief   Registers or finds the corresponding Vicon object.
      *
      * @param[in] subjectName   The subject name from the Vicon frame.
      * @param[in] segmentName   The segment name from the Vicon frame.
      */
-    ROS_ViconStream::ObjectPublisher&registerObject(std::string &subjectName,
-                                                    std::string &segmentName);
+    ROS_ViconStream::ObjectPublisher& registerObject(std::string &subjectName,
+                                                     std::string &segmentName);
+    /**
+     * @brief   Callback for the deadline supervisor.
+     */
+    void deadlineCallback();
 
     /**
-     * @brief   Callbakc for the ViconStream.
+     * @brief   Callback for the ViconStream.
      *
      * @param[in] frame Read only frame from the ViconStream.
      */
@@ -86,3 +101,5 @@ public:
     ~ROS_ViconStream();
 
 };
+
+#endif

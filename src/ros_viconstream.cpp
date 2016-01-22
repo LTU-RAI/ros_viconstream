@@ -20,7 +20,6 @@
 
 #include "ros_viconstream.h"
 
-
 /*********************************
  * Private members
  ********************************/
@@ -75,7 +74,7 @@ public:
         ROS_INFO("New object detected, adding %s", name.c_str());
 
         /* Advertise the message. */
-        pub = nh.advertise<geometry_msgs::TransformStamped> (name, 5);
+        pub = nh.advertise<geometry_msgs::TransformStamped> (name, 10);
 
         /*
          * Check for the object calibration.
@@ -192,12 +191,21 @@ ROS_ViconStream::ObjectPublisher& ROS_ViconStream::registerObject(
     }
 }
 
+void ROS_ViconStream::deadlineCallback()
+{
+    ROS_WARN("The viconCallback has timed out");
+}
+
 void ROS_ViconStream::viconCallback(const Client &frame)
 {
     tf::Transform tf;
     std::vector<tf::StampedTransform> tf_list;
     geometry_msgs::TransformStamped pub_tf;
     const ros::Time frame_curr_time = ros::Time::now();
+
+    /* Reset and start the deadline again */
+    _dl.stop();
+    _dl.start();
 
     /* Get the number of subjects. */
     const int subCount = frame.GetSubjectCount().SubjectCount;
@@ -285,7 +293,9 @@ void ROS_ViconStream::viconCallback(const Client &frame)
  * Public members
  ********************************/
 
-ROS_ViconStream::ROS_ViconStream(std::ostream &os) : _nh("~"), _vs(NULL)
+ROS_ViconStream::ROS_ViconStream(std::ostream &os)
+    : _nh("~"), _vs(NULL), _dl([&] () { this->deadlineCallback(); }, 100),
+      _dl_id(0)
 {
     /* Get the Vicon URL. */
     std::string vicon_url;
