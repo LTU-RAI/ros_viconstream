@@ -299,11 +299,18 @@ ROS_ViconStream::ROS_ViconStream(std::ostream &os)
 {
     /* Get the Vicon URL. */
     std::string vicon_url;
+    std::string vicon_mode;
 
     if (!_nh.getParam("vicon_url", vicon_url))
     {
         ROS_WARN("No Vicon URL found defaulting to localhost.");
         vicon_url = "localhost:801";
+    }
+
+    if (!_nh.getParam("vicon_streammode", vicon_mode))
+    {
+        ROS_WARN("No Vicon StreamMode found defaulting to ServerPush.");
+        vicon_mode = "ServerPush";
     }
 
     /* Check for naming prefix. */
@@ -326,8 +333,18 @@ ROS_ViconStream::ROS_ViconStream(std::ostream &os)
         this->viconCallback(frame);
     });
 
+    auto mode = StreamMode::ServerPush;
+
+    if (vicon_mode == "ClientPull")
+        mode = StreamMode::ClientPull;
+    else if (vicon_mode == "ServerPush")
+        mode = StreamMode::ServerPush;
+    else
+        ROS_WARN("Invalid mode detected, was: '%s'. Defaulting to ServerPush.",
+                 vicon_mode.c_str());
+
     /* Enable the stream and check for errors. */
-    if (!_vs->enableStream(true, false, false, false, StreamMode::ServerPush))
+    if (!_vs->enableStream(true, false, false, false, mode))
     {
         ROS_ERROR("Unable to connect to vicon!");
 
