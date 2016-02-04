@@ -2,8 +2,8 @@
 
     <node pkg="ros_viconstream" name="vicon" type="ros_viconstream_node" output="screen">
         <!-- Vicon url -->
-        <!-- <param name="vicon_url" value="vicon.research.ltu.se:801" /> -->
-        <param name="vicon_url" value="130.240.235.15:801" />
+        <param name="vicon_url" value="vicon.research.ltu.se:801" />
+        <!-- <param name="vicon_url" value="130.240.235.15:801" /> -->
 
         <!-- Vicon stream mode -->
         <param name="vicon_streammode" value="ClientPull" />
