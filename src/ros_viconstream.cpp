@@ -269,7 +269,7 @@ void ROS_ViconStream::viconCallback(const Client &frame)
                                            rotation.Rotation[3]) ); // w
 
             /* Apply calibration. */
-            tf *= obj.zero_pose;
+            tf = tf * obj.zero_pose;
 
             /* Save all transform for the TransformBroadcaster. */
             tf_list.push_back( tf::StampedTransform( tf,
