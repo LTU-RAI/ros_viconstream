@@ -18,7 +18,7 @@
 *
 ****************************************************************************/
 
-#include "ros_viconstream.h"
+#include "ros_viconstream/ros_viconstream.h"
 
 /*********************************
  * Private members
@@ -53,9 +53,9 @@ public:
      * @param[in] segmentName   The segment name from the Vicon frame.
      */
     ObjectPublisher(ros::NodeHandle &nh,
-                    std::string &objectPrefix,
-                    std::string &subjectName,
-                    std::string &segmentName)
+                    const std::string &objectPrefix,
+                    const std::string &subjectName,
+                    const std::string &segmentName)
         : calibrated(false), zero_pose(tf::Pose::getIdentity())
     {
         std::string params;
@@ -163,8 +163,8 @@ public:
 };
 
 ROS_ViconStream::ObjectPublisher& ROS_ViconStream::registerObject(
-    std::string &subjectName,
-    std::string &segmentName)
+    const std::string &subjectName,
+    const std::string &segmentName)
 {
     std::string name(subjectName + "/" + segmentName);
 
@@ -212,15 +212,15 @@ void ROS_ViconStream::viconCallback(const Client &frame)
     for( int subIndex = 0; subIndex < subCount; subIndex++ )
     {
         /* Get the subject name. */
-        std::string subName = frame.GetSubjectName( subIndex ).SubjectName;
+        const std::string subName = frame.GetSubjectName( subIndex ).SubjectName;
 
         /* Get the number of segments in the subject. */
         const int segCount = frame.GetSegmentCount( subName ).SegmentCount;
         for( int segIndex = 0; segIndex < segCount; segIndex++ )
         {
             /* Get the segment name. */
-            std::string segName = frame.GetSegmentName( subName,
-                                                        segIndex ).SegmentName;
+            const std::string segName =
+                frame.GetSegmentName( subName, segIndex ).SegmentName;
 
             /* Extract the pose. */
             Output_GetSegmentGlobalTranslation translation =

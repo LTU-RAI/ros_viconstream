@@ -72,8 +72,9 @@ private:
      * @param[in] subjectName   The subject name from the Vicon frame.
      * @param[in] segmentName   The segment name from the Vicon frame.
      */
-    ROS_ViconStream::ObjectPublisher& registerObject(std::string &subjectName,
-                                                     std::string &segmentName);
+    ROS_ViconStream::ObjectPublisher& registerObject(
+            const std::string &subjectName,
+            const std::string &segmentName);
     /**
      * @brief   Callback for the deadline supervisor.
      */

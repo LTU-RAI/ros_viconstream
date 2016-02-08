@@ -19,7 +19,7 @@
 ****************************************************************************/
 
 #include <iostream>
-#include "ros_viconstream.h"
+#include "ros_viconstream/ros_viconstream.h"
 
 using namespace std;
 
