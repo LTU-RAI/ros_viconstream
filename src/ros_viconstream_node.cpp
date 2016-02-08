@@ -34,8 +34,11 @@ int main(int argc, char *argv[])
     /* Start the ViconStream. */
     ROS_ViconStream vs(cout);
 
+    /* Run a multi-threaded spinner.  */
+    ros::MultiThreadedSpinner spinner(0);
+
     /* Let ROS run. */
-    ros::spin();
+    spinner.spin();
 
     return 0;
 }
