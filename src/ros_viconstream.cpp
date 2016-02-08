@@ -203,7 +203,10 @@ void ROS_ViconStream::viconCallback(const Client &frame)
     geometry_msgs::TransformStamped pub_tf;
     const ros::Time frame_curr_time = ros::Time::now();
 
-    /* Reset and start the deadline again */
+    /* Allocate the number of TFs plus some extra. */
+    tf_list.reserve(_objectList.size() + 10);
+
+    /* Reset and start the deadline again. */
     _dl.stop();
     _dl.start();
 
