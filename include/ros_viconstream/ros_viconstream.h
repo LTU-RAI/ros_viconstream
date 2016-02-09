@@ -42,6 +42,9 @@ private:
     /* @brief ID of the reference frame (Vicon area). */
     std::string _id_reference_frame;
 
+    /* @brief Frame rate for dropout counter. */
+    unsigned int _framerate;
+
     /* @brief Object name prefix. */
     std::string _object_prefix;
 

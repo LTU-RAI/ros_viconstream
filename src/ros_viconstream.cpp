@@ -210,6 +210,10 @@ void ROS_ViconStream::viconCallback(const Client &frame)
     _dl.stop();
     _dl.start();
 
+    /* Check the frame rate */
+    if (_framerate == 0)
+        _framerate = frame.GetFrameRate().FrameRateHz;
+
     /* Get the number of subjects. */
     const int subCount = frame.GetSubjectCount().SubjectCount;
     for( int subIndex = 0; subIndex < subCount; subIndex++ )
@@ -248,14 +252,15 @@ void ROS_ViconStream::viconCallback(const Client &frame)
             {
                 obj.occluded_counter++;
 
-                if (obj.occluded_counter > 100)
+                if (obj.occluded_counter > (_framerate * 3))
                 {
                     obj.occluded_counter = 0;
 
-                    ROS_WARN(
-                        "Object '%s' has not been visible for 100 frames.",
-                        obj.name.c_str()
-                    );
+                    if (_framerate > 0)
+                        ROS_WARN(
+                            "Object '%s' has not been visible for 3 seconds.",
+                            obj.name.c_str()
+                        );
                 }
 
                 continue;
@@ -297,8 +302,8 @@ void ROS_ViconStream::viconCallback(const Client &frame)
  ********************************/
 
 ROS_ViconStream::ROS_ViconStream(std::ostream &os)
-    : _nh("~"), _vs(NULL), _dl([&] () { this->deadlineCallback(); }, 500),
-      _dl_id(0)
+    : _framerate(0), _nh("~"), _vs(NULL),
+      _dl([&] () { this->deadlineCallback(); }, 500), _dl_id(0)
 {
     /* Get the Vicon URL. */
     std::string vicon_url;
