@@ -23,6 +23,14 @@
 
 using namespace std;
 
+#ifdef NDEBUG
+class NullBuffer : public std::streambuf
+{
+public:
+    int overflow(int c) { return c; }
+};
+#endif
+
 int main(int argc, char *argv[])
 {
     /*
@@ -31,8 +39,15 @@ int main(int argc, char *argv[])
     ROS_INFO("Initializing Vicon...");
     ros::init(argc, argv, "ros_viconstream");
 
+#ifdef NDEBUG
+    NullBuffer null_buffer;
+    std::ostream null_stream(&null_buffer);
+
     /* Start the ViconStream. */
+    ROS_ViconStream vs(null_stream);
+#else
     ROS_ViconStream vs(cout);
+#endif
 
     /* Run a multi-threaded spinner.  */
     ros::MultiThreadedSpinner spinner(1);

@@ -32,6 +32,7 @@
 #include "tf/tf.h"
 #include "tf/transform_broadcaster.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "std_msgs/String.h"
 
 #include "deadline.h"
 

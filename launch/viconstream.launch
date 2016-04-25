@@ -32,6 +32,18 @@
         <!-- <param name="kfly/kfly/zero_pose/rotation/roll" value="0" /> -->
         <!-- <param name="kfly/kfly/zero_pose/rotation/pitch" value="0" /> -->
         <!-- <param name="kfly/kfly/zero_pose/rotation/yaw" value="0" /> -->
+
+        <!-- Enable Occulsion errors -->
+        <!-- <param name="kfly/kfly/errors/occluded" value="true" /> -->
+
+        <!-- Enable Bounding box errors -->
+        <!-- <param name="kfly/kfly/errors/boundingbox/min/x" value="0" /> -->
+        <!-- <param name="kfly/kfly/errors/boundingbox/min/y" value="0" /> -->
+        <!-- <param name="kfly/kfly/errors/boundingbox/min/z" value="0" /> -->
+
+        <!-- <param name="kfly/kfly/errors/boundingbox/max/x" value="1" /> -->
+        <!-- <param name="kfly/kfly/errors/boundingbox/max/y" value="1" /> -->
+        <!-- <param name="kfly/kfly/errors/boundingbox/max/z" value="1" /> -->
     </node>
 
 </launch>
