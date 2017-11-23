@@ -13,7 +13,7 @@
 #include <atomic>
 
 #include "ros/ros.h"
-#include "viconstream/viconstream.h"
+#include "libviconstream/viconstream.h"
 #include "tf/tf.h"
 #include "tf/transform_broadcaster.h"
 #include "geometry_msgs/PoseStamped.h"
@@ -21,7 +21,7 @@
 
 #include "deadline.h"
 
-class ROS_ViconStream
+class ros_viconstream
 {
 private:
   /* @brief ID of the reference frame (Vicon area). */
@@ -46,7 +46,7 @@ private:
   tf::TransformBroadcaster _tf_broadcaster;
 
   /* @brief ViconStream object. */
-  ViconStream::ViconStream *_vs;
+  std::unique_ptr<libviconstream::arbiter> _vs;
 
   /* @biref Deadline checking Vicon's library for deadlocks. */
   Deadline::Deadline _dl;
@@ -60,7 +60,7 @@ private:
    * @param[in] subjectName   The subject name from the Vicon frame.
    * @param[in] segmentName   The segment name from the Vicon frame.
    */
-  ROS_ViconStream::ObjectPublisher &registerObject(
+  ros_viconstream::ObjectPublisher &registerObject(
       const std::string &subjectName, const std::string &segmentName);
   /**
    * @brief   Callback for the deadline supervisor.
@@ -80,12 +80,12 @@ public:
    *
    * @param[in] os Reference to the log output stream.
    */
-  ROS_ViconStream(std::ostream &os);
+  ros_viconstream(std::ostream &os);
 
   /**
    * @brief   Destructor that handles the graceful exit of the Vicon.
    */
-  ~ROS_ViconStream();
+  ~ros_viconstream();
 };
 
 #endif

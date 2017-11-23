@@ -9,7 +9,7 @@
  * Private members
  ********************************/
 
-class ROS_ViconStream::ObjectPublisher
+class ros_viconstream::ObjectPublisher
 {
 public:
   /* @brief Status of calibration from parameters. */
@@ -271,7 +271,7 @@ public:
   }
 };
 
-ROS_ViconStream::ObjectPublisher &ROS_ViconStream::registerObject(
+ros_viconstream::ObjectPublisher &ros_viconstream::registerObject(
     const std::string &subjectName, const std::string &segmentName)
 {
   std::string name(subjectName + "/" + segmentName);
@@ -298,12 +298,12 @@ ROS_ViconStream::ObjectPublisher &ROS_ViconStream::registerObject(
   }
 }
 
-void ROS_ViconStream::deadlineCallback()
+void ros_viconstream::deadlineCallback()
 {
   ROS_ERROR("The viconCallback has timed out, is the Vicon system paused?");
 }
 
-void ROS_ViconStream::viconCallback(const Client &frame)
+void ros_viconstream::viconCallback(const Client &frame)
 {
   tf::Transform tf;
   std::vector< tf::StampedTransform > tf_list;
@@ -343,7 +343,7 @@ void ROS_ViconStream::viconCallback(const Client &frame)
           frame.GetSegmentGlobalRotationQuaternion(subName, segName);
 
       /* Check if the object is registered, else add it. */
-      ROS_ViconStream::ObjectPublisher &obj = registerObject(subName, segName);
+      ros_viconstream::ObjectPublisher &obj = registerObject(subName, segName);
 
       /* Check so the operation was successful. */
       if (translation.Result != Result::Success ||
@@ -421,10 +421,9 @@ void ROS_ViconStream::viconCallback(const Client &frame)
  * Public members
  ********************************/
 
-ROS_ViconStream::ROS_ViconStream(std::ostream &os)
+ros_viconstream::ros_viconstream(std::ostream &os)
     : _framerate(0)
     , _nh("~")
-    , _vs(NULL)
     , _dl([&]() { this->deadlineCallback(); }, 500)
     , _dl_id(0)
 {
@@ -455,7 +454,8 @@ ROS_ViconStream::ROS_ViconStream(std::ostream &os)
   }
 
   /* Connect to Vicon. */
-  _vs = new ViconStream::ViconStream(vicon_url, os);
+  _vs = std::unique_ptr< libviconstream::arbiter >{
+      new libviconstream::arbiter(vicon_url, os)};
 
   /* Subscribe to the vicon frames. */
   _vs->registerCallback([&](const Client &frame) {
@@ -483,11 +483,10 @@ ROS_ViconStream::ROS_ViconStream(std::ostream &os)
   }
 }
 
-ROS_ViconStream::~ROS_ViconStream()
+ros_viconstream::~ros_viconstream()
 {
   if (_vs != NULL)
   {
     _vs->disableStream();
-    delete _vs;
   }
 }

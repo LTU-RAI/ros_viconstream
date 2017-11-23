@@ -32,16 +32,13 @@ int main(int argc, char *argv[])
   std::ostream null_stream(&null_buffer);
 
   /* Start the ViconStream. */
-  ROS_ViconStream vs(null_stream);
+  ros_viconstream vs(null_stream);
 #else
-  ROS_ViconStream vs(cout);
+  ros_viconstream vs(cout);
 #endif
 
-  /* Run a multi-threaded spinner.  */
-  ros::MultiThreadedSpinner spinner(1);
-
   /* Let ROS run. */
-  spinner.spin();
+  ros::spin();
 
   return 0;
 }
