@@ -1,2 +1,2 @@
-- git: {local-name: ros_viconstream, uri: 'https://gitlab.com/korken89/ros_viconstream.git', version: master}
-- git: {local-name: libviconstream, uri: 'https://gitlab.com/korken89/cppViconStream.git', version: master}
+- git: {local-name: ros_viconstream, uri: 'https://gitlab.com/LTU-CEG/ros_viconstream.git', version: master}
+- git: {local-name: libviconstream, uri: 'https://gitlab.com/LTU-CEG/libviconstream.git', version: master}

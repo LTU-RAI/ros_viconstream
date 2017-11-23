@@ -2,18 +2,19 @@
 
 ## Contributors
 
-* Emil Fresk
+* [Emil Fresk](https://www.github.com/korken89)
 
 ---
 
 ## License
 
-Licensed under the LGPL-v3 license, see LICENSE file for details.
+Licensed under the Boost Software License 1.0, see LICENSE file for details.
 
 ---
 
 ## Functionality
 
-Publishes geometry messages, that are time-stamped, with the Vicon
-measurements.
+Publishes geometry messages, that are time-stamped, with the Vicon measurements.
+
 * Supports a "zero-pose" for calibrating an object.
+* Supports a bounding-box to detect if a measurement is invalid.
