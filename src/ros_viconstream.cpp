@@ -58,9 +58,7 @@ public:
   ObjectPublisher(ros::NodeHandle &nh, const std::string &objectPrefix,
                   const std::string &subjectName,
                   const std::string &segmentName)
-      : calibrated(false)
-      , first_frame(true)
-      , zero_pose(tf::Pose::getIdentity())
+      : calibrated(false), first_frame(true), zero_pose(tf::Pose::getIdentity())
   {
     std::string params;
 
@@ -184,12 +182,15 @@ public:
       ROS_INFO("\tOcclusions: Disabled");
 
     /* Get delta threshold setting. */
-    bool dpos_available = nh.getParam(name + "/errors/max_delta_position", max_dpos);
-    bool drot_available = nh.getParam(name + "/errors/max_delta_rotation", max_drot);
+    bool dpos_available =
+        nh.getParam(name + "/errors/max_delta_position", max_dpos);
+    bool drot_available =
+        nh.getParam(name + "/errors/max_delta_rotation", max_drot);
 
-    if (dpos_available || drot_available)
+    if ((dpos_available || drot_available) &&
+        ((max_dpos > 0) || (max_drot > 0)))
     {
-      ROS_INFO("\tFrame to frame thresholds enabled");
+      ROS_INFO("\tFrame to frame thresholds: Enabled");
 
       if (dpos_available && (max_dpos > 0))
       {
@@ -217,7 +218,7 @@ public:
     {
       max_delta_position = 0;
       max_delta_rotation = 0;
-      ROS_INFO("\tThresholds: Disabled");
+      ROS_INFO("\tFrame to frame thresholds: Disabled");
     }
   }
 
@@ -232,14 +233,14 @@ public:
   {
     if (first_frame)
     {
-      last_tf = tf;
+      last_tf     = tf;
       first_frame = false;
       return true;
     }
     else
     {
       tf::Transform delta = last_tf.inverse() * tf;
-      last_tf = tf;
+      last_tf             = tf;
 
       double dpos = delta.getOrigin().length();
       double drot = std::abs(delta.getRotation().getAngle());
