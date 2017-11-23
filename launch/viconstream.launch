@@ -32,10 +32,10 @@
         <!-- <param name="morph/morph/zero_pose/rotation/yaw" value="0" /> -->
 
         <!-- Enable Occlusion errors -->
-        <!-- <param name="morph/morph/errors/occluded" value="true" /> -->
+        <param name="morph/morph/errors/occluded" value="true" />
 
         <!-- Enable thresholds for frame to frame movement -->
-        <param name="morph/morph/errors/max_delta_position" value="0.5" />
-        <param name="morph/morph/errors/max_delta_rotation" value="0.5" />
+        <param name="morph/morph/errors/max_delta_position" value="0.3" />
+        <param name="morph/morph/errors/max_delta_rotation" value="0.3" />
     </node>
 </launch>
