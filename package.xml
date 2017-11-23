@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>ros_viconstream</name>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <description>
       A simple package for reading Vicon Motion Capture data in ROS.
   </description>
