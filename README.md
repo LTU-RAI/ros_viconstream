@@ -17,4 +17,4 @@ Licensed under the Boost Software License 1.0, see LICENSE file for details.
 Publishes geometry messages, that are time-stamped, with the Vicon measurements.
 
 * Supports a "zero-pose" for calibrating an object.
-* Supports a bounding-box to detect if a measurement is invalid.
+* Supports frame to frame limits on rotation and position to detect if a measurement is invalid.

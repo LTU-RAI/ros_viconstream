@@ -11,6 +11,7 @@
 #include <vector>
 #include <thread>
 #include <atomic>
+#include <cmath>
 
 #include "ros/ros.h"
 #include "libviconstream/viconstream.h"
@@ -53,6 +54,9 @@ private:
 
   /* Deadline ID. */
   std::atomic< unsigned int > _dl_id;
+
+  /* @biref list of TFs for publishing, to not reallocate all the time. */
+  std::vector< tf::StampedTransform > _tf_list;
 
   /**
    * @brief   Registers or finds the corresponding Vicon object.

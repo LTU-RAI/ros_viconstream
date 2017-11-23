@@ -21,17 +21,17 @@ public:
   /* @brief Setting for publishing occluded errors. */
   bool publish_occluded_errors;
 
-  /* @brief Setting for publishing bounding box errors. */
-  bool publish_bounding_box_errors;
+  /* @brief Max delta movement for error checking. */
+  double max_delta_position;
 
-  /* @brief Bounding box for error checking. */
-  struct
-  {
-    struct
-    {
-      double x, y, z;
-    } min, max;
-  } bounding_box;
+  /* @brief Max delta rotation for error checking. */
+  double max_delta_rotation;
+
+  /* @brief Last pose used for error checking. */
+  tf::Transform last_tf;
+
+  /* @brief Checker for the first frame. */
+  bool first_frame;
 
   /* @brief Holder of the zero pose of the object, used to remove offset from
    * an object to not have to fight with Vicon Tracker. */
@@ -58,12 +58,14 @@ public:
   ObjectPublisher(ros::NodeHandle &nh, const std::string &objectPrefix,
                   const std::string &subjectName,
                   const std::string &segmentName)
-      : calibrated(false), zero_pose(tf::Pose::getIdentity())
+      : calibrated(false)
+      , first_frame(true)
+      , zero_pose(tf::Pose::getIdentity())
   {
     std::string params;
 
     double px, py, pz, qw, qx, qy, qz, rr, rp, ry;
-    double c1x, c1y, c1z, c2x, c2y, c2z;
+    double max_drot, max_dpos;
     bool cal = true;
     bool has_quaternion;
     occluded_counter = 0;
@@ -181,93 +183,74 @@ public:
     else
       ROS_INFO("\tOcclusions: Disabled");
 
-    /* Get bounding box setting. */
-    cal = true;
+    /* Get delta threshold setting. */
+    bool dpos_available = nh.getParam(name + "/errors/max_delta_position", max_dpos);
+    bool drot_available = nh.getParam(name + "/errors/max_delta_rotation", max_drot);
 
-    cal = cal && nh.getParam(name + "/errors/boundingbox/min/x", c1x);
-    cal = cal && nh.getParam(name + "/errors/boundingbox/min/y", c1y);
-    cal = cal && nh.getParam(name + "/errors/boundingbox/min/z", c1z);
-
-    cal = cal && nh.getParam(name + "/errors/boundingbox/max/x", c2x);
-    cal = cal && nh.getParam(name + "/errors/boundingbox/max/y", c2y);
-    cal = cal && nh.getParam(name + "/errors/boundingbox/max/z", c2z);
-
-    publish_bounding_box_errors = cal;
-
-    if (cal && (c1x >= c2x))
+    if (dpos_available || drot_available)
     {
-      ROS_WARN(
-          "\tBounding box: X coordinate, min is bigger than, or equal to max.");
-      cal = false;
-    }
-    if (cal && (c1y >= c2y))
-    {
-      ROS_WARN(
-          "\tBounding box: Y coordinate, min is bigger than, or equal to max.");
-      cal = false;
-    }
-    if (cal && (c1z >= c2z))
-    {
-      ROS_WARN(
-          "\tBounding box: Z coordinate, min is bigger than, or equal to max.");
-      cal = false;
-    }
+      ROS_INFO("\tFrame to frame thresholds enabled");
 
-    if (cal)
-    {
-      bounding_box.min.x = c1x;
-      bounding_box.min.y = c1y;
-      bounding_box.min.z = c1z;
+      if (dpos_available && (max_dpos > 0))
+      {
+        max_delta_position = max_dpos;
+        ROS_INFO("\t\tPosition threshold: %f (m)", max_delta_position);
+      }
+      else
+      {
+        max_delta_position = 0;
+        ROS_INFO("\t\tPosition threshold disabled.");
+      }
 
-      bounding_box.max.x = c2x;
-      bounding_box.max.y = c2y;
-      bounding_box.max.z = c2z;
-
-      ROS_INFO("\tBounding box: Enabled");
-      ROS_INFO("\t\tMin: %f (x), %f (y), %f (z)", c1x, c1y, c1z);
-      ROS_INFO("\t\tMax: %f (x), %f (y), %f (z)", c2x, c2y, c2z);
+      if (drot_available && (max_drot > 0))
+      {
+        max_delta_rotation = max_drot;
+        ROS_INFO("\t\tRotation threshold: %f (rad)", max_delta_rotation);
+      }
+      else
+      {
+        max_delta_rotation = 0;
+        ROS_INFO("\t\tRotation threshold disabled.");
+      }
     }
     else
     {
-      ROS_INFO("\tBounding box: Disabled");
+      max_delta_position = 0;
+      max_delta_rotation = 0;
+      ROS_INFO("\tThresholds: Disabled");
     }
   }
 
   /**
-   * @brief   Checks if the object is in the bounding box set by its
-   *          parameters.
+   * @brief   Checks if the object is in the thresholds set by its parameters.
    *
-   * @param[in] x     X position.
-   * @param[in] y     Y position.
-   * @param[in] z     Z position.
+   * @param[in] tf    Transform holding the position and rotation.
    *
-   * @return True if inside the box, else false.
+   * @return True if inside the thresholds, else false.
    */
-  bool inBoundingBox(const double x, const double y, const double z)
+  bool inThresholds(const tf::Transform &tf)
   {
-    if ((x >= bounding_box.min.x) && (x <= bounding_box.max.x) &&
-        (y >= bounding_box.min.y) && (y <= bounding_box.max.y) &&
-        (z >= bounding_box.min.z) && (z <= bounding_box.max.z))
+    if (first_frame)
+    {
+      last_tf = tf;
+      first_frame = false;
       return true;
+    }
     else
-      return false;
-  }
+    {
+      tf::Transform delta = last_tf.inverse() * tf;
+      last_tf = tf;
 
-  /**
-   * @brief   Checks if the object is in the bounding box set by its
-   *          parameters.
-   *
-   * @param[in] tf    Transform holding the position.
-   *
-   * @return True if inside the box, else false.
-   */
-  bool inBoundingBox(const tf::Transform &tf)
-  {
-    geometry_msgs::Transform pose;
-    tf::transformTFToMsg(tf, pose);
+      double dpos = delta.getOrigin().length();
+      double drot = std::abs(delta.getRotation().getAngle());
 
-    return inBoundingBox(pose.translation.x, pose.translation.y,
-                         pose.translation.z);
+      if ((max_delta_position > 0) && (dpos > max_delta_position))
+        return false;
+      else if ((max_delta_rotation > 0) && (drot > max_delta_rotation))
+        return false;
+      else
+        return true;
+    }
   }
 };
 
@@ -306,12 +289,8 @@ void ros_viconstream::deadlineCallback()
 void ros_viconstream::viconCallback(const Client &frame)
 {
   tf::Transform tf;
-  std::vector< tf::StampedTransform > tf_list;
   geometry_msgs::TransformStamped pub_tf;
   const ros::Time frame_curr_time = ros::Time::now();
-
-  /* Allocate the number of TFs plus some extra. */
-  tf_list.reserve(_objectList.size() + 10);
 
   /* Reset and start the deadline again. */
   _dl.stop();
@@ -349,7 +328,7 @@ void ros_viconstream::viconCallback(const Client &frame)
       if (translation.Result != Result::Success ||
           rotation.Result != Result::Success)
       {
-        ROS_WARN("Strange error, should not happen (result unsucessful).");
+        ROS_WARN("Strange error, should not happen (result unsuccessful).");
         continue;
       }
 
@@ -390,31 +369,31 @@ void ros_viconstream::viconCallback(const Client &frame)
       /* Apply calibration. */
       tf = obj.zero_pose * tf;
 
-      /* Check so the object is in the bounding box. */
-      if (obj.publish_bounding_box_errors)
+      /* Check so the object is in the thresholds. */
+      if (!obj.inThresholds(tf))
       {
-        if (!obj.inBoundingBox(tf))
-        {
-          std_msgs::String err;
-          err.data = "bounding_box";
-          obj.pub_error.publish(err);
+        std_msgs::String err;
+        err.data = "thresholds";
+        obj.pub_error.publish(err);
 
-          continue;
-        }
+        continue;
       }
 
       /* Save all transform for the TransformBroadcaster. */
-      tf_list.push_back(tf::StampedTransform(tf, frame_curr_time,
-                                             _id_reference_frame, obj.name));
+      _tf_list.push_back(tf::StampedTransform(tf, frame_curr_time,
+                                              _id_reference_frame, obj.name));
 
       /* Publish the geometry_msg transform. */
-      tf::transformStampedTFToMsg(tf_list.back(), pub_tf);
+      tf::transformStampedTFToMsg(_tf_list.back(), pub_tf);
       obj.pub.publish(pub_tf);
     }
   }
 
   /* Publish the tf list. */
-  _tf_broadcaster.sendTransform(tf_list);
+  _tf_broadcaster.sendTransform(_tf_list);
+
+  /* Clear for next frame. */
+  _tf_list.clear();
 }
 
 /*********************************
@@ -473,6 +452,9 @@ ros_viconstream::ros_viconstream(std::ostream &os)
   else
     ROS_WARN("Invalid mode detected, was: '%s'. Defaulting to ServerPush.",
              vicon_mode.c_str());
+
+  /* Allocate space in the TF list */
+  _tf_list.reserve(100);
 
   /* Enable the stream and check for errors. */
   if (!_vs->enableStream(true, false, false, false, mode))
