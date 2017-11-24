@@ -13,14 +13,14 @@
         <!-- Name of the base "world" frame -->
         <param name="id_reference_frame" value="/world" />
 
-        <!-- Object calibration (set zero position and pose) -->
 
 
+        <!-- Object settings -->
+        <!-- Example for an object named morph/morph -->
 
-        <!-- ------------------------------------------------------------- -->
-        <!-- Example for an object named morph/morph                       -->
-        <!-- All settings are optional, but the thresholds are recommended -->
-        <!-- ------------------------------------------------------------- -->
+        <!-- Select frame for odometry -->
+        <param name="morph/morph/global_frame_linear_velocity" value="false" />
+        <param name="morph/morph/global_frame_angular_velocity" value="false" />
 
         <!-- Position calibration -->
         <param name="morph/morph/zero_pose/position/x" value="0" />

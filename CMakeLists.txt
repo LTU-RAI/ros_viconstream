@@ -3,7 +3,7 @@
 ###    (See accompanying file LICENSE.md or copy at
 ###          http://www.boost.org/LICENSE_1_0.txt)
 
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.1)
 project(ros_viconstream)
 
 ## Find catkin macros and libraries
@@ -16,13 +16,14 @@ find_package(catkin REQUIRED COMPONENTS
   message_runtime
   roscpp
   std_msgs
+  nav_msgs
   libviconstream
 )
 
 ########################################
 # Enable C++11 and other C++ flags
 ########################################
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+set (CMAKE_CXX_STANDARD 11)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -150,6 +151,7 @@ include_directories(
 add_executable(ros_viconstream_node
     src/ros_viconstream_node.cpp
     src/ros_viconstream.cpp
+    src/object_publisher.cpp
 )
 
 ## Add cmake target dependencies of the executable

@@ -5,274 +5,10 @@
 
 #include "ros_viconstream/ros_viconstream.h"
 
-/*********************************
- * Private members
- ********************************/
-
-class ros_viconstream::ObjectPublisher
-{
-public:
-  /* @brief Status of calibration from parameters. */
-  bool calibrated;
-
-  /* @brief Checks if the object is occluded for a longer time. */
-  int occluded_counter;
-
-  /* @brief Setting for publishing occluded errors. */
-  bool publish_occluded_errors;
-
-  /* @brief Max delta movement for error checking. */
-  double max_delta_position;
-
-  /* @brief Max delta rotation for error checking. */
-  double max_delta_rotation;
-
-  /* @brief Last pose used for error checking. */
-  tf::Transform last_tf;
-
-  /* @brief Checker for the first frame. */
-  bool first_frame;
-
-  /* @brief Holder of the zero pose of the object, used to remove offset from
-   * an object to not have to fight with Vicon Tracker. */
-  tf::Transform zero_pose;
-
-  /* @brief Holder of the ROS publisher for this object's transforms. */
-  ros::Publisher pub;
-
-  /* @brief Holder of the ROS publisher for this object's errors. */
-  ros::Publisher pub_error;
-
-  /* @brief Name of the object on the form "subject name/segment name". */
-  std::string name;
-
-  /**
-   * @brief   Creates a new object publisher object and loads a calibration
-   *          of the zero pose if available.
-   *
-   * @param[in] nh            The node handle from ROS.
-   * @param[in] objectPrefix  An prefix to the naming scheme (if wanted).
-   * @param[in] subjectName   The subject name from the Vicon frame.
-   * @param[in] segmentName   The segment name from the Vicon frame.
-   */
-  ObjectPublisher(ros::NodeHandle &nh, const std::string &objectPrefix,
-                  const std::string &subjectName,
-                  const std::string &segmentName)
-      : calibrated(false), first_frame(true), zero_pose(tf::Pose::getIdentity())
-  {
-    std::string params;
-
-    double px, py, pz, qw, qx, qy, qz, rr, rp, ry;
-    double max_drot, max_dpos;
-    bool cal = true;
-    bool has_quaternion;
-    occluded_counter = 0;
-
-    /* Create object name. */
-    if (objectPrefix.size() > 0)
-      name = objectPrefix + "/" + subjectName + "/" + segmentName;
-    else
-      name = subjectName + "/" + segmentName;
-
-    ROS_INFO("New object detected, adding %s", name.c_str());
-
-    /* Advertise the data message. */
-    pub = nh.advertise< geometry_msgs::TransformStamped >(name, 10);
-
-    /* Advertise the error message. */
-    pub_error = nh.advertise< std_msgs::String >(name + "/errors", 10);
-
-    /*
-     * Check for the object calibration.
-     */
-    params = name + "/zero_pose/";
-
-    /* Position calibration. */
-    cal = cal && nh.getParam(params + "position/x", px);
-    cal = cal && nh.getParam(params + "position/y", py);
-    cal = cal && nh.getParam(params + "position/z", pz);
-
-    if (cal)
-    {
-      ROS_INFO(
-          "Position calibration for %s available:"
-          " x = %f, y = %f, z = %f",
-          name.c_str(), px, py, pz);
-
-      zero_pose.setOrigin(tf::Vector3(px, py, pz));
-
-      calibrated = true;
-    }
-    else
-    {
-      ROS_INFO(
-          "Position calibration for %s unavailable,"
-          " setting x = 0, y = 0, z = 0",
-          name.c_str());
-
-      zero_pose.setOrigin(tf::Vector3(0, 0, 0));
-    }
-
-    cal = true;
-
-    /* Quaternion calibration. */
-    cal = cal && nh.getParam(params + "rotation/w", qw);
-    cal = cal && nh.getParam(params + "rotation/x", qx);
-    cal = cal && nh.getParam(params + "rotation/y", qy);
-    cal = cal && nh.getParam(params + "rotation/z", qz);
-
-    has_quaternion = cal;
-
-    if (!has_quaternion)
-    {
-      cal = true;
-
-      /* If there was no quaternion, check for roll, pitch and yaw. */
-      cal = cal && nh.getParam(params + "rotation/roll", rr);
-      cal = cal && nh.getParam(params + "rotation/pitch", rp);
-      cal = cal && nh.getParam(params + "rotation/yaw", ry);
-    }
-
-    /* Apply calibrations. */
-    if (cal)
-    {
-      if (has_quaternion)
-      {
-        ROS_INFO(
-            "Quaternion calibration for %s available:"
-            " w = %f, x = %f, y = %f, z = %f",
-            name.c_str(), qw, qx, qy, qz);
-
-        zero_pose.setRotation(tf::Quaternion(qx, qy, qz, qw));
-      }
-      else
-      {
-        ROS_INFO(
-            "RPY calibration for %s available:"
-            " R = %f, P = %f, Y = %f",
-            name.c_str(), rr, rp, ry);
-
-        zero_pose.setRotation(tf::createQuaternionFromRPY(rr, rp, ry));
-      }
-
-      calibrated = calibrated & true;
-    }
-    else
-    {
-      ROS_INFO(
-          "Rotation calibration for %s unavailable,"
-          " setting quaternion w = 1, x = 0, y = 0, z = 0",
-          name.c_str());
-
-      zero_pose.setRotation(tf::Quaternion(0, 0, 0, 1));
-    }
-
-    /* Use the inverse to just have multiplications later. */
-    zero_pose = zero_pose.inverse();
-
-    /* Setup error checking. */
-    ROS_INFO("Error publishing for %s", name.c_str());
-
-    /* Get occluded setting. */
-    cal = nh.getParam(name + "/errors/occluded", publish_occluded_errors);
-
-    if (cal)
-      ROS_INFO("\tOcclusions: Enabled");
-    else
-      ROS_INFO("\tOcclusions: Disabled");
-
-    /* Get delta threshold setting. */
-    bool dpos_available =
-        nh.getParam(name + "/errors/max_delta_position", max_dpos);
-    bool drot_available =
-        nh.getParam(name + "/errors/max_delta_rotation", max_drot);
-
-    if ((dpos_available || drot_available) &&
-        ((max_dpos > 0) || (max_drot > 0)))
-    {
-      ROS_INFO("\tFrame to frame thresholds: Enabled");
-
-      if (dpos_available && (max_dpos > 0))
-      {
-        max_delta_position = max_dpos;
-        ROS_INFO("\t\tPosition threshold: %f (m)", max_delta_position);
-      }
-      else
-      {
-        max_delta_position = 0;
-        ROS_INFO("\t\tPosition threshold disabled.");
-      }
-
-      if (drot_available && (max_drot > 0))
-      {
-        max_delta_rotation = max_drot;
-        ROS_INFO("\t\tRotation threshold: %f (rad)", max_delta_rotation);
-      }
-      else
-      {
-        max_delta_rotation = 0;
-        ROS_INFO("\t\tRotation threshold disabled.");
-      }
-    }
-    else
-    {
-      max_delta_position = 0;
-      max_delta_rotation = 0;
-      ROS_INFO("\tFrame to frame thresholds: Disabled");
-    }
-  }
-
-  /**
-   * @brief   Checks if the object is in the thresholds set by its parameters.
-   *
-   * @param[in] tf    Transform holding the position and rotation.
-   *
-   * @return True if inside the thresholds, else false.
-   */
-  bool inThresholds(const tf::Transform &tf)
-  {
-    if (first_frame)
-    {
-      last_tf     = tf;
-      first_frame = false;
-      return true;
-    }
-    else
-    {
-      const tf::Transform delta = last_tf.inverse() * tf;
-      last_tf                   = tf;
-
-      const double dpos = delta.getOrigin().length();
-      const double drot = std::abs(delta.getRotation().getAngle());
-
-      if ((max_delta_position > 0) && (dpos > max_delta_position))
-      {
-        ROS_ERROR_STREAM("Outside delta position threshold! Delta position: "
-                         << dpos << " m");
-        ROS_ERROR("Is the Vicon system calibrated and marker patterns unique?");
-
-        return false;
-      }
-      else if ((max_delta_rotation > 0) && (drot > max_delta_rotation))
-      {
-        ROS_ERROR_STREAM("Outside delta rotation threshold! Delta rotation: "
-                         << drot << " rad");
-        ROS_ERROR("Is the Vicon system calibrated and marker patterns unique?");
-
-        return false;
-      }
-      else
-      {
-        return true;
-      }
-    }
-  }
-};
-
 ros_viconstream::ObjectPublisher &ros_viconstream::registerObject(
     const std::string &subjectName, const std::string &segmentName)
 {
-  std::string name(subjectName + "/" + segmentName);
+  const std::string name(subjectName + "/" + segmentName);
 
   /* Search for the object in the map. */
   auto search_it = _objectList.find(name);
@@ -308,6 +44,7 @@ void ros_viconstream::viconCallback(const Client &frame)
 {
   tf::Transform tf;
   geometry_msgs::TransformStamped pub_tf;
+  nav_msgs::Odometry pub_odom;
   const ros::Time frame_curr_time = ros::Time::now();
 
   /* Reset and start the deadline again. */
@@ -387,8 +124,11 @@ void ros_viconstream::viconCallback(const Client &frame)
       /* Apply calibration. */
       tf = obj.zero_pose * tf;
 
+      /* Register the TF to the object. */
+      obj.registerTF(tf);
+
       /* Check so the object is in the thresholds. */
-      if (!obj.inThresholds(tf))
+      if (!obj.inThresholds())
       {
         std_msgs::String err;
         err.data = "thresholds";
@@ -401,9 +141,22 @@ void ros_viconstream::viconCallback(const Client &frame)
       _tf_list.push_back(tf::StampedTransform(tf, frame_curr_time,
                                               _id_reference_frame, obj.name));
 
-      /* Publish the geometry_msg transform. */
+      /* Publish the geometry_msg::TransformStapmed */
       tf::transformStampedTFToMsg(_tf_list.back(), pub_tf);
       obj.pub.publish(pub_tf);
+
+      /* Publish the nav_msgs::Odometry */
+      pub_odom.header = pub_tf.header;
+      pub_odom.child_frame_id = pub_tf.child_frame_id;
+
+      pub_odom.pose.pose.position.x = pub_tf.transform.translation.x;
+      pub_odom.pose.pose.position.y = pub_tf.transform.translation.y;
+      pub_odom.pose.pose.position.z = pub_tf.transform.translation.z;
+
+      pub_odom.pose.pose.orientation = pub_tf.transform.rotation;
+      pub_odom.twist.twist = obj.getTwist();
+
+      obj.pub_odom.publish(pub_odom);
     }
   }
 
@@ -449,6 +202,7 @@ ros_viconstream::ros_viconstream(std::ostream &os)
   }
 
   /* Connect to Vicon. */
+  ROS_INFO("Connecting to the Vicion system...");
   _vs = std::unique_ptr< libviconstream::arbiter >{
       new libviconstream::arbiter(vicon_url, os)};
 

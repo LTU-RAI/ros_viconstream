@@ -9,22 +9,113 @@
 #include <iostream>
 #include <map>
 #include <vector>
-#include <thread>
-#include <atomic>
 #include <cmath>
 
-#include "ros/ros.h"
-#include "libviconstream/viconstream.h"
-#include "tf/tf.h"
-#include "tf/transform_broadcaster.h"
-#include "geometry_msgs/PoseStamped.h"
-#include "std_msgs/String.h"
+#include <ros/ros.h>
+#include <std_msgs/String.h>
+#include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <nav_msgs/Odometry.h>
 
+#include "libviconstream/viconstream.h"
 #include "deadline.h"
 
 class ros_viconstream
 {
 private:
+  /* @brief Class defining an object publisher. */
+  class ObjectPublisher
+  {
+  public:
+    /* @brief Status of calibration from parameters. */
+    bool calibrated;
+
+    /* @brief Checks if the object is occluded for a longer time. */
+    int occluded_counter;
+
+    /* @brief Setting for publishing occluded errors. */
+    bool publish_occluded_errors;
+
+    /* @brief Setting for if the velocity is in the global frame. */
+    bool global_frame_vel;
+
+    /* @brief Setting for if the angular rate is in the global frame. */
+    bool global_frame_rot;
+
+    /* @brief Max delta movement for error checking. */
+    double max_delta_position;
+
+    /* @brief Max delta rotation for error checking. */
+    double max_delta_rotation;
+
+    /* @brief Last pose used odometry and for error checking. */
+    tf::Transform last_tf;
+
+    /* @brief Delta frame used odometry. */
+    tf::Transform delta_tf;
+
+    /* @brief Time for the last frame. */
+    ros::Time last_tf_time;
+
+    /* @brief Duration for the delta frame. */
+    ros::Duration duration_delta_tf;
+
+    /* @brief Checker for the first frame. */
+    bool first_frame;
+
+    /* @brief Holder of the zero pose of the object, used to remove offset from
+     * an object to not have to fight with Vicon Tracker. */
+    tf::Transform zero_pose;
+
+    /* @brief Holder of the ROS publisher for this object's transforms. */
+    ros::Publisher pub;
+
+    /* @brief Holder of the ROS publisher for this object's odometry. */
+    ros::Publisher pub_odom;
+
+    /* @brief Holder of the ROS publisher for this object's errors. */
+    ros::Publisher pub_error;
+
+    /* @brief Name of the object on the form "subject name/segment name". */
+    std::string name;
+
+    /**
+     * @brief   Creates a new object publisher object and loads a calibration
+     *          of the zero pose if available.
+     *
+     * @param[in] nh            The node handle from ROS.
+     * @param[in] objectPrefix  An prefix to the naming scheme (if wanted).
+     * @param[in] subjectName   The subject name from the Vicon frame.
+     * @param[in] segmentName   The segment name from the Vicon frame.
+     */
+    ObjectPublisher(ros::NodeHandle &nh, const std::string &objectPrefix,
+                    const std::string &subjectName,
+                    const std::string &segmentName);
+
+    /**
+     * @brief   Registers the current Transform of the object.
+     *
+     * @param[in] tf    Transform holding the position and rotation.
+     */
+    void registerTF(const tf::Transform &tf);
+
+
+    /**
+     * @brief   Calculates the twist from the last frame.
+     *
+     * @return  The calculated twist.
+     */
+    geometry_msgs::Twist getTwist();
+
+    /**
+     * @brief   Checks if the object is in the thresholds set by its parameters.
+     *
+     * @return True if inside the thresholds, else false.
+     */
+    bool inThresholds();
+  };
+
   /* @brief ID of the reference frame (Vicon area). */
   std::string _id_reference_frame;
 
@@ -33,9 +124,6 @@ private:
 
   /* @brief Object name prefix. */
   std::string _object_prefix;
-
-  /* @brief Class defining an object publisher. */
-  class ObjectPublisher;
 
   /* @brief Map holding the Vicon objects and their respective publisher. */
   std::map< std::string, ObjectPublisher > _objectList;
@@ -47,12 +135,12 @@ private:
   tf::TransformBroadcaster _tf_broadcaster;
 
   /* @brief ViconStream object. */
-  std::unique_ptr<libviconstream::arbiter> _vs;
+  std::unique_ptr< libviconstream::arbiter > _vs;
 
-  /* @biref Deadline checking Vicon's library for deadlocks. */
+  /* @brief Deadline checking Vicon's library for deadlocks. */
   Deadline::Deadline _dl;
 
-  /* @biref list of TFs for publishing, to not reallocate all the time. */
+  /* @brief list of TFs for publishing, to not reallocate all the time. */
   std::vector< tf::StampedTransform > _tf_list;
 
   /**
@@ -69,15 +157,15 @@ private:
   void deadlineCallback();
 
   /**
-   * @brief   Callback for the ViconStream.
+   * @brief   Callback for the viconstream.
    *
-   * @param[in] frame Read only frame from the ViconStream.
+   * @param[in] frame Read only frame from the viconstream.
    */
   void viconCallback(const Client &frame);
 
 public:
   /**
-   * @brief   Constructor for the ROS_ViconStream.
+   * @brief   Constructor for the ros_viconstream.
    *
    * @param[in] os Reference to the log output stream.
    */

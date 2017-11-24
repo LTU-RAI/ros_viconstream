@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>ros_viconstream</name>
-  <version>1.1.2</version>
+  <version>1.2.0</version>
   <description>
       A simple package for reading Vicon Motion Capture data in ROS.
   </description>
@@ -19,12 +19,14 @@
   <build_depend>message_generation</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
   <build_depend>libviconstream</build_depend>
   <run_depend>tf</run_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>std_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
   <run_depend>libviconstream</run_depend>
 
 
