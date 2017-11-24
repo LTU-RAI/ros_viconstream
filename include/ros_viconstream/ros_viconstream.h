@@ -52,9 +52,6 @@ private:
   /* @biref Deadline checking Vicon's library for deadlocks. */
   Deadline::Deadline _dl;
 
-  /* Deadline ID. */
-  std::atomic< unsigned int > _dl_id;
-
   /* @biref list of TFs for publishing, to not reallocate all the time. */
   std::vector< tf::StampedTransform > _tf_list;
 

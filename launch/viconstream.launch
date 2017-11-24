@@ -11,9 +11,16 @@
         <!-- <param name="object_prefix" value="myprefix" /> -->
 
         <!-- Name of the base "world" frame -->
-        <param name="id_reference_frame" value="world" />
+        <param name="id_reference_frame" value="/world" />
 
         <!-- Object calibration (set zero position and pose) -->
+
+
+
+        <!-- ------------------------------------------------------------- -->
+        <!-- Example for an object named morph/morph                       -->
+        <!-- All settings are optional, but the thresholds are recommended -->
+        <!-- ------------------------------------------------------------- -->
 
         <!-- Position calibration -->
         <param name="morph/morph/zero_pose/position/x" value="0" />
@@ -35,7 +42,7 @@
         <param name="morph/morph/errors/occluded" value="true" />
 
         <!-- Enable thresholds for frame to frame movement -->
-        <param name="morph/morph/errors/max_delta_position" value="0.3" />
-        <param name="morph/morph/errors/max_delta_rotation" value="0.3" />
+        <param name="morph/morph/errors/max_delta_position" value="0.3" /> <!-- meters -->
+        <param name="morph/morph/errors/max_delta_rotation" value="0.3" /> <!-- radians -->
     </node>
 </launch>

@@ -105,7 +105,7 @@ public:
     }
     else
     {
-      ROS_WARN(
+      ROS_INFO(
           "Position calibration for %s unavailable,"
           " setting x = 0, y = 0, z = 0",
           name.c_str());
@@ -159,7 +159,7 @@ public:
     }
     else
     {
-      ROS_WARN(
+      ROS_INFO(
           "Rotation calibration for %s unavailable,"
           " setting quaternion w = 1, x = 0, y = 0, z = 0",
           name.c_str());
@@ -239,18 +239,32 @@ public:
     }
     else
     {
-      tf::Transform delta = last_tf.inverse() * tf;
-      last_tf             = tf;
+      const tf::Transform delta = last_tf.inverse() * tf;
+      last_tf                   = tf;
 
-      double dpos = delta.getOrigin().length();
-      double drot = std::abs(delta.getRotation().getAngle());
+      const double dpos = delta.getOrigin().length();
+      const double drot = std::abs(delta.getRotation().getAngle());
 
       if ((max_delta_position > 0) && (dpos > max_delta_position))
+      {
+        ROS_ERROR_STREAM("Outside delta position threshold! Delta position: "
+                         << dpos << " m");
+        ROS_ERROR("Is the Vicon system calibrated and marker patterns unique?");
+
         return false;
+      }
       else if ((max_delta_rotation > 0) && (drot > max_delta_rotation))
+      {
+        ROS_ERROR_STREAM("Outside delta rotation threshold! Delta rotation: "
+                         << drot << " rad");
+        ROS_ERROR("Is the Vicon system calibrated and marker patterns unique?");
+
         return false;
+      }
       else
+      {
         return true;
+      }
     }
   }
 };
@@ -284,7 +298,10 @@ ros_viconstream::ObjectPublisher &ros_viconstream::registerObject(
 
 void ros_viconstream::deadlineCallback()
 {
-  ROS_ERROR("The viconCallback has timed out, is the Vicon system paused?");
+  ROS_ERROR(
+      "Vicon frames has timed out, is the Vicon system paused? If not, "
+      "then the internal deadlock problem of the Vicon library has occurred. "
+      "Restart the ros_viconstream node.");
 }
 
 void ros_viconstream::viconCallback(const Client &frame)
@@ -329,7 +346,7 @@ void ros_viconstream::viconCallback(const Client &frame)
       if (translation.Result != Result::Success ||
           rotation.Result != Result::Success)
       {
-        ROS_WARN("Strange error, should not happen (result unsuccessful).");
+        ROS_ERROR("Strange error, should not happen (result unsuccessful).");
         continue;
       }
 
@@ -350,8 +367,8 @@ void ros_viconstream::viconCallback(const Client &frame)
           obj.occluded_counter = 0;
 
           if (_framerate > 0)
-            ROS_WARN("Object '%s' has not been visible for 3 seconds.",
-                     obj.name.c_str());
+            ROS_ERROR("Object '%s' has not been visible for 3 seconds.",
+                      obj.name.c_str());
         }
 
         continue;
@@ -402,10 +419,7 @@ void ros_viconstream::viconCallback(const Client &frame)
  ********************************/
 
 ros_viconstream::ros_viconstream(std::ostream &os)
-    : _framerate(0)
-    , _nh("~")
-    , _dl([&]() { this->deadlineCallback(); }, 500)
-    , _dl_id(0)
+    : _framerate(0), _nh("~"), _dl([&]() { this->deadlineCallback(); }, 500)
 {
   /* Get the Vicon URL. */
   std::string vicon_url;
@@ -430,6 +444,7 @@ ros_viconstream::ros_viconstream(std::ostream &os)
   /* Check for reference frame naming. */
   if (!_nh.getParam("id_reference_frame", _id_reference_frame))
   {
+    ROS_INFO("No reference frame specified, defaulting to \"/world\".");
     _id_reference_frame = "/world";
   }
 
@@ -438,11 +453,8 @@ ros_viconstream::ros_viconstream(std::ostream &os)
       new libviconstream::arbiter(vicon_url, os)};
 
   /* Subscribe to the vicon frames. */
-  _vs->registerCallback([&](const Client &frame) {
-
-    /* Using lambda to get around the static. */
-    this->viconCallback(frame);
-  });
+  _vs->registerCallback(
+      [&](const Client &frame) { this->viconCallback(frame); });
 
   auto mode = StreamMode::ServerPush;
 
@@ -451,8 +463,8 @@ ros_viconstream::ros_viconstream(std::ostream &os)
   else if (vicon_mode == "ServerPush")
     mode = StreamMode::ServerPush;
   else
-    ROS_WARN("Invalid mode detected, was: '%s'. Defaulting to ServerPush.",
-             vicon_mode.c_str());
+    ROS_ERROR("Invalid mode detected, was: '%s'. Defaulting to ServerPush.",
+              vicon_mode.c_str());
 
   /* Allocate space in the TF list */
   _tf_list.reserve(100);
