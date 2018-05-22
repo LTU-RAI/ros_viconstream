@@ -55,11 +55,15 @@ private:
     /* @brief Delta frame used odometry. */
     tf::Transform delta_tf;
 
+    /* @brief Used for median filtering in odometry. */
+    tf::Vector3 old_speed[2];
+    tf::Vector3 old_rate[2];
+
     /* @brief Time for the last frame. */
     ros::Time last_tf_time;
 
     /* @brief Duration for the delta frame. */
-    ros::Duration duration_delta_tf;
+    double frame_dt;
 
     /* @brief Checker for the first frame. */
     bool first_frame;
@@ -88,10 +92,11 @@ private:
      * @param[in] objectPrefix  An prefix to the naming scheme (if wanted).
      * @param[in] subjectName   The subject name from the Vicon frame.
      * @param[in] segmentName   The segment name from the Vicon frame.
+     * @param[in] framerate_hz  The Vicon framerate (used in twist calculation).
      */
     ObjectPublisher(ros::NodeHandle &nh, const std::string &objectPrefix,
                     const std::string &subjectName,
-                    const std::string &segmentName);
+                    const std::string &segmentName, const double framerate_hz);
 
     /**
      * @brief   Registers the current Transform of the object.
@@ -99,7 +104,6 @@ private:
      * @param[in] tf    Transform holding the position and rotation.
      */
     void registerTF(const tf::Transform &tf);
-
 
     /**
      * @brief   Calculates the twist from the last frame.
@@ -150,7 +154,8 @@ private:
    * @param[in] segmentName   The segment name from the Vicon frame.
    */
   ros_viconstream::ObjectPublisher &registerObject(
-      const std::string &subjectName, const std::string &segmentName);
+      const std::string &subjectName, const std::string &segmentName,
+      const double framerate_hz);
   /**
    * @brief   Callback for the deadline supervisor.
    */

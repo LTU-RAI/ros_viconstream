@@ -11,10 +11,12 @@
 
 ros_viconstream::ObjectPublisher::ObjectPublisher(
     ros::NodeHandle &nh, const std::string &objectPrefix,
-    const std::string &subjectName, const std::string &segmentName)
+    const std::string &subjectName, const std::string &segmentName,
+    const double framerate_hz)
     : calibrated(false)
     , global_frame_vel(false)
     , global_frame_rot(false)
+    , frame_dt(1.0 / framerate_hz)
     , first_frame(true)
     , zero_pose(tf::Pose::getIdentity())
 {
@@ -25,6 +27,9 @@ ros_viconstream::ObjectPublisher::ObjectPublisher(
   bool cal = true;
   bool has_quaternion;
   occluded_counter = 0;
+
+  if (framerate_hz == 0)
+		frame_dt = 1; // Some safe number
 
   /* Create object name. */
   if (objectPrefix.size() > 0)
@@ -226,21 +231,42 @@ void ros_viconstream::ObjectPublisher::registerTF(const tf::Transform &tf)
   {
     delta_tf          = last_tf.inverse() * tf;
     last_tf           = tf;
-    duration_delta_tf = current_time - last_tf_time;
     last_tf_time      = current_time;
   }
 }
 
 geometry_msgs::Twist ros_viconstream::ObjectPublisher::getTwist()
 {
+  static unsigned old_cnt = 0;
   const auto dq = delta_tf.getRotation();
 
-  auto speed = delta_tf.getOrigin() / duration_delta_tf.toSec();
-  auto rate =
-      2 * tf::Vector3(dq.x(), dq.y(), dq.z()) / duration_delta_tf.toSec();
+  const auto curr_speed = delta_tf.getOrigin() / frame_dt;
+  auto curr_rate = 2 * tf::Vector3(dq.x(), dq.y(), dq.z()) / frame_dt;
 
   if (dq.w() < 0)
-    rate = -rate;
+    curr_rate = -curr_rate;
+
+  // Calculate 3-point median to reject jumps that comes from lags in
+  // Ethernet connectivity
+  auto med_filt = [](double a, double b, double c)
+  {
+    return std::max(std::min(a, b), std::min(std::max(a, b), c));
+  };
+
+  tf::Vector3 speed{
+      med_filt(curr_speed.x(), old_speed[0].x(), old_speed[1].x()),
+      med_filt(curr_speed.y(), old_speed[0].y(), old_speed[1].y()),
+      med_filt(curr_speed.z(), old_speed[0].z(), old_speed[1].z())};
+
+  tf::Vector3 rate{med_filt(curr_rate.x(), old_rate[0].x(), old_rate[1].x()),
+                   med_filt(curr_rate.y(), old_rate[0].y(), old_rate[1].y()),
+                   med_filt(curr_rate.z(), old_rate[0].z(), old_rate[1].z())};
+
+  // Save old
+  old_speed[old_cnt % 2] = curr_speed;
+  old_rate[old_cnt % 2] = curr_rate;
+  old_cnt++;
+
 
   const auto R = tf::Matrix3x3(last_tf.getRotation());
 

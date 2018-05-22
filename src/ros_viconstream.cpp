@@ -6,7 +6,8 @@
 #include "ros_viconstream/ros_viconstream.h"
 
 ros_viconstream::ObjectPublisher &ros_viconstream::registerObject(
-    const std::string &subjectName, const std::string &segmentName)
+    const std::string &subjectName, const std::string &segmentName,
+    const double framerate_hz)
 {
   const std::string name(subjectName + "/" + segmentName);
 
@@ -16,7 +17,8 @@ ros_viconstream::ObjectPublisher &ros_viconstream::registerObject(
   if (search_it == _objectList.end())
   {
     /* Object is not available, create it. */
-    ObjectPublisher op(_nh, _object_prefix, subjectName, segmentName);
+    ObjectPublisher op(_nh, _object_prefix, subjectName, segmentName,
+                       framerate_hz);
 
     /* Add to the list of objects. */
     auto new_ob = _objectList.insert(
@@ -77,7 +79,8 @@ void ros_viconstream::viconCallback(const Client &frame)
           frame.GetSegmentGlobalRotationQuaternion(subName, segName);
 
       /* Check if the object is registered, else add it. */
-      ros_viconstream::ObjectPublisher &obj = registerObject(subName, segName);
+      ros_viconstream::ObjectPublisher &obj =
+          registerObject(subName, segName, _framerate);
 
       /* Check so the operation was successful. */
       if (translation.Result != Result::Success ||
